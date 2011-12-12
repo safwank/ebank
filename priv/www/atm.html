@@ -1,0 +1,251 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta http-equiv="Content-Style-Type" content="text/css" />
+        <style type="text/css">
+            body {
+                text-align: center;
+                background: #7a95b1;
+                font-family: arial, verdana;
+            }
+            #wrapper {
+                margin: 50px auto 0;
+                width: 675px;
+                height: 340px;
+                background: #6a85a1;
+                padding: 0;
+            }
+            h1 {
+                position: absolute;
+                margin: -50px;
+                display: none;
+            }
+            #menu {
+                float: left;
+                height: 100%;
+                width: 176px;
+                margin: 60px 0 0;
+                padding: 0;
+            }
+            #menu li {
+                list-style-type: none;
+                text-align: left;
+                padding: 10px 0 0 40px;
+                margin: 2px 0;
+                height: 22px;
+                background: #012b61;
+                color: #fff;
+                cursor: pointer;
+                background-repeat: no-repeat;
+            }
+            #menu li span {
+                display: none;
+            }
+            #menu li.withdraw {
+                background-image: url('/gifs/withdraw_off.gif');
+            }
+            #menu li.withdraw:hover, #menu.withdraw li.withdraw {
+                background-image: url('/gifs/withdraw_on.gif');
+            }
+            #menu li.balance {
+                background-image: url('/gifs/balance_off.gif');
+            }
+            #menu li.balance:hover, #menu.balance li.balance {
+                background-image: url('/gifs/balance_on.gif');
+            }
+            #menu li.statement {
+                background-image: url('/gifs/ministatement_off.gif');
+            }
+            #menu li.statement:hover, #menu.statement li.statement {
+                background-image: url('/gifs/ministatement_on.gif');
+            }
+            #display {
+                float: left;
+                width: 300px;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                background-image: url('/gifs/atmbg.gif');
+                background-repeat: no-repeat;
+                background-position: center 0;
+            }
+            #screen {
+                color: #3e3;
+                padding: 5px;
+                overflow-y: auto;
+                font-family: monospace;
+                font-size: 12px;
+                text-align: left;
+                width:240px;
+                height:170px;
+                margin: 55px 0 45px 30px;
+            }
+            #pad {
+                float: left;
+                height: 100%;
+                width: 195px;
+                margin: 0;
+                padding: 0;
+            }
+            #pad ol {
+                padding: 0 0 0 25px;
+            }
+            #pad li {
+                list-style-type:none;
+                float: left;
+                margin: 2px 10px;
+            }
+            button {
+                display: block;
+                margin: 10px auto;
+                width: 100px;
+            }
+            #pad ol button {
+                width: inherit;
+                margin: 0;
+            }
+            #pad #numclear {
+                margin: 3px 0 0 80px;
+                width: 76px;
+            }
+        </style>
+        <title>Erlang Bank - ATM</title>
+    </head>
+    <body>
+        <div id="wrapper">
+            <h1>The Amazing Erlang ATM</h1>
+            <ul id="menu">
+                <li class="withdraw"><span>Withdraw Cash</span></li>
+                <li class="balance"><span>Balance Enquiry</span></li>
+                <li class="statement"><span>Mini Statement</span></li>
+            </ul>
+            <div id="display">
+                <div id="screen">
+                    <p>Hello!</p>
+                    <p>Welcome to the Erlang ATM.</p>
+                    <p>Please insert your card.</p>
+                </div>
+            </div>
+            <div id="pad">
+                <button>Enter</button>
+                <button>Cancel</button>
+                <ol>
+                    <li><button>1</button></li>
+                    <li><button>2</button></li>
+                    <li><button>3</button></li>
+                    <li><button>4</button></li>
+                    <li><button>5</button></li>
+                    <li><button>6</button></li>
+                    <li><button>7</button></li>
+                    <li><button>8</button></li>
+                    <li><button>9</button></li>
+                    <li><button>0</button></li>
+                </ol>
+                <button id="numclear">Clear</button>
+            </div>
+        </div>
+    <script type="text/javascript" src="jquery-1.6.2.min.js"></script>
+    <script type="text/javascript">
+        var fsm = {
+            url: {
+                base: 'http://127.0.0.1:'+location.port+'/atm/webatm:do/',
+                event: function(event) { return fsm.url.base+"event/"+escape(event)+'/?'+Math.random(); },
+                start: function() { return fsm.url.base+"start/?"+Math.random(); },
+                card: function(event) { return fsm.url.base+"event/card/"+escape(event)+'/?'+Math.random(); }
+            },
+            run: function(commands, i) {
+                if (i === undefined) {
+                    i = 0;
+                }
+                while (commands[i] !== undefined) {
+                    console.log(commands[i]);
+                    if(commands[i].command == 'wait') {
+                        console.log("setting timeout");
+                        setTimeout(function() {
+                            console.log("starting again");
+                            fsm.run(commands, i+1);
+                        }, commands[i].val);
+                        break;
+                    }
+                    fsm[commands[i].command](commands[i].val);
+                    i++;
+                }
+            },
+            choose: function(commands) {
+                var select = $('<select />').attr('id', 'cards').appendTo('#display');
+                var callback = function(event) {
+                    fsm_card(select[0].value);
+                };
+                for (var i in commands) {
+                    var item = commands[i].val.split(/([0-9]+):/);
+                    $("<option />").attr('value', item[1]).text(item[1]+": "+item[2]).appendTo(select);
+                }
+                $('<button />').text('Pick a Card').click(callback).appendTo('#display');
+            },
+            display: function(str) {
+                $('#screen').empty();
+                fsm.append_line(str);
+            },
+            append_line: function(str) {
+                $("<p />").text(str).appendTo($('#screen'));
+            },
+            append: function(str) {
+                var p = $('#screen').children().last();
+                p.text(p.text() + str);
+            },
+            highlight: function(option) {
+                $('#menu').attr('class', option);
+            },
+            eject: function(str) {
+                fsm.append_line("Your card is being ejected."),
+                setTimeout(function() { location.reload(true); }, 1250);
+            },
+            send_event: function(event) {
+                console.log(jQuery.ajax({
+                    dataType: 'jsonp',
+                    jsonpCallback: 'fsm.run',
+                    url: fsm.url.event(event)
+                }));
+            },
+            choose_card: function(event) {
+                console.log(jQuery.ajax({
+                    dataType: 'jsonp',
+                    jsonpCallback: 'fsm.run',
+                    url: fsm.url.card(event)
+                }));
+            },
+            connect: function() {
+                console.log(jQuery.ajax({
+                    dataType: 'jsonp',
+                    jsonpCallback: 'fsm.choose',
+                    url: fsm.url.start()
+                }));
+            }
+        };
+        var fsm_event = function(val) {
+            var ev = val.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            fsm.send_event(ev);
+            console.log(ev);
+        };
+        var fsm_card = function(val) {
+            fsm.choose_card(val);
+            console.log(val);
+        }
+
+        $(document).ready(function() {
+
+            // Event registration
+            $('button').click(function(event) {
+                fsm_event(event.target.textContent);
+            });
+            $('div #menu li').click(function(event) {
+                fsm_event($(event.target).attr('class'));
+            });
+
+            fsm.connect();
+
+        });
+    </script>
+    </body>
+</html>
